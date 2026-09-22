@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LTL direct coverage and interline handoffs</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Condensed:wght@500;600&family=IBM+Plex+Sans:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#EDEFEE;
+  --card:#FBFCFB;
+  --ink:#15211F;
+  --ink-soft:#5C6763;
+  --ink-faint:#8B9490;
+  --rule:#D2D7D4;
+  --direct:#0F5F52;
+  --direct-ink:#EAF3F0;
+  --partial:#8FBFB4;
+  --partial-ink:#123B34;
+  --none:#DDE1DF;
+  --none-ink:#8B9490;
+  --signal:#D89A0C;
+  --signal-deep:#7A5504;
+  --sans:"IBM Plex Sans",system-ui,-apple-system,Segoe UI,sans-serif;
+  --cond:"IBM Plex Sans Condensed","IBM Plex Sans",system-ui,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.65;padding:32px 20px 64px}
+.wrap{max-width:1080px;margin:0 auto}
+
+header{border-bottom:2px solid var(--ink);padding-bottom:18px;margin-bottom:28px}
+.eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-faint);margin:0 0 10px}
+h1{font-family:var(--cond);font-weight:600;font-size:clamp(30px,5vw,46px);line-height:1.05;letter-spacing:-.015em;margin:0 0 10px;max-width:20ch}
+.standfirst{margin:0;max-width:62ch;color:var(--ink-soft);font-size:15.5px}
+
+.key{display:flex;flex-wrap:wrap;gap:6px 22px;margin:20px 0 0;font-family:var(--mono);font-size:11.5px;letter-spacing:.03em;color:var(--ink-soft)}
+.key span{display:flex;align-items:center;gap:8px}
+.sw{width:15px;height:15px;border-radius:2px;flex:none}
+
+.layout{display:grid;grid-template-columns:250px minmax(0,1fr);gap:34px;align-items:start}
+@media (max-width:860px){.layout{grid-template-columns:1fr;gap:26px}}
+
+.bloc{margin:0 0 22px}
+.bloc h2{font-family:var(--mono);font-size:10.5px;font-weight:500;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-faint);margin:0 0 4px;padding-bottom:5px;border-bottom:1px solid var(--rule)}
+.bloc p{margin:0 0 9px;font-size:12px;color:var(--ink-faint);line-height:1.45}
+.pick{display:block;width:100%;text-align:left;background:none;border:0;border-left:2px solid transparent;padding:5px 0 5px 10px;font:inherit;font-size:14px;color:var(--ink-soft);cursor:pointer;transition:color .12s,border-color .12s,background .12s}
+.pick:hover{color:var(--ink);background:rgba(15,95,82,.05)}
+.pick[aria-pressed="true"]{color:var(--direct);border-left-color:var(--direct);font-weight:500;background:rgba(15,95,82,.07)}
+.pick:focus-visible{outline:2px solid var(--signal);outline-offset:1px}
+
+.panel{background:var(--card);border:1px solid var(--rule);border-radius:3px;padding:22px 24px}
+
+.gridwrap{overflow-x:auto}
+.grid{display:grid;grid-template-columns:repeat(11,minmax(34px,1fr));gap:5px;min-width:420px}
+.tile{aspect-ratio:1.18/1;display:flex;align-items:center;justify-content:center;border-radius:2px;font-family:var(--mono);font-size:11px;font-weight:500;background:var(--none);color:var(--none-ink);transition:background .18s,color .18s}
+.tile.blank{background:none}
+.tile.d{background:var(--direct);color:var(--direct-ink)}
+.tile.p{background:var(--partial);color:var(--partial-ink)}
+
+.meta{display:flex;align-items:baseline;justify-content:space-between;gap:16px;flex-wrap:wrap;margin:0 0 16px;padding-bottom:12px;border-bottom:1px solid var(--rule)}
+.meta h3{font-family:var(--cond);font-weight:600;font-size:25px;letter-spacing:-.01em;margin:0}
+.count{font-family:var(--mono);font-size:11.5px;letter-spacing:.05em;color:var(--ink-faint);white-space:nowrap}
+
+.note{margin:20px 0 0;padding-top:16px;border-top:1px solid var(--rule);color:var(--ink-soft);max-width:66ch}
+
+.ledger{margin:22px 0 0}
+.ledger h4{font-family:var(--mono);font-size:10.5px;font-weight:500;letter-spacing:.12em;text-transform:uppercase;color:var(--signal-deep);margin:0 0 2px}
+.row{display:grid;grid-template-columns:minmax(0,1fr) 24px minmax(0,1.15fr);align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--rule)}
+.row:last-child{border-bottom:0}
+.from{font-family:var(--mono);font-size:12px;color:var(--ink-faint);text-transform:uppercase;letter-spacing:.05em}
+.arrow{color:var(--signal);font-size:15px;text-align:center;line-height:1}
+.to{font-size:14px;color:var(--ink);font-weight:500}
+.to em{display:block;font-style:normal;font-weight:400;font-size:12.5px;color:var(--ink-soft);letter-spacing:0}
+
+footer{margin:44px 0 0;padding-top:18px;border-top:1px solid var(--rule);font-size:13px;color:var(--ink-faint);max-width:78ch}
+footer strong{font-weight:500;color:var(--ink-soft)}
+
+@media print{
+  body{background:#fff;padding:0;font-size:11pt}
+  .layout{grid-template-columns:1fr}
+  .pick[aria-pressed="false"]{display:none}
+  .panel{border:0;padding:0}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <p class="eyebrow">LTL routing reference &middot; 23 carriers</p>
+  <h1>Where the truck stops and somebody else&rsquo;s starts</h1>
+  <p class="standfirst">Direct terminal coverage versus interline territory, by carrier. The useful question is rarely &ldquo;do they go there&rdquo; &mdash; it&rsquo;s &ldquo;whose dock does my freight cross to get there.&rdquo;</p>
+  <div class="key">
+    <span><i class="sw" style="background:var(--direct)"></i>Own terminals</span>
+    <span><i class="sw" style="background:var(--partial)"></i>Partial or gateway only</span>
+    <span><i class="sw" style="background:var(--none)"></i>Interlined to a partner</span>
+  </div>
+</header>
+
+<div class="layout">
+  <nav id="picker" aria-label="Choose a carrier"></nav>
+
+  <main class="panel">
+    <div class="meta">
+      <h3 id="cname">&nbsp;</h3>
+      <p class="count" id="ccount">&nbsp;</p>
+    </div>
+    <div class="gridwrap"><div class="grid" id="grid" role="img" aria-label="United States tile grid showing coverage type per state"></div></div>
+    <p class="note" id="cnote"></p>
+    <div class="ledger" id="ledger"></div>
+  </main>
+</div>
+
+<footer>
+  <strong>On accuracy.</strong> Direct footprints are drawn from carrier-published service areas as of August 2026. Partial states are the soft spots &mdash; most carriers serve them by ZIP, not by state line, and published lists differ between a carrier&rsquo;s own pages. For anything going into a routing guide, the ZIP-level transit calculator on the carrier&rsquo;s site outranks this map. Two recent changes worth noting: Midwest Motor Express and DHE folded into the AAA Cooper brand on 1 January 2026 under the same SCAC, and Dohrn Transfer became simply Dohrn on 3 August 2026 after absorbing Sutton Transport.
+</footer>
+
+</div>
+
+<script>
+var GRID=[["AK","","","","","","","","","","ME"],["","","","","","","","","","VT","NH"],["WA","ID","MT","ND","MN","IL","WI","MI","NY","RI","MA"],["OR","NV","WY","SD","IA","IN","OH","PA","NJ","CT",""],["CA","UT","CO","NE","MO","KY","WV","VA","MD","DE",""],["","AZ","NM","KS","AR","TN","NC","SC","DC","",""],["","","","OK","LA","MS","AL","GA","","",""],["HI","","","TX","","","","","FL","",""]];
+
+var L48="WA OR CA NV ID MT WY UT AZ CO NM ND SD NE KS OK TX MN IA MO AR LA WI IL MI IN OH KY TN MS AL GA FL SC NC VA WV PA NY NJ MD DE CT RI MA VT NH ME DC".split(" ");
+var SE="AL GA FL SC NC TN MS LA AR VA".split(" ");
+var NE="PA NJ NY CT RI MA VT NH ME MD DE".split(" ");
+var MW="OH IN IL MI WI MN IA MO".split(" ");
+function not(list){return L48.filter(function(s){return list.indexOf(s)<0});}
+
+var OFFSHORE=[["Alaska, Hawaii, Puerto Rico","Freight forwarders and offshore specialists"]];
+
+var BLOCS=[
+{name:"National networks",gloss:"No handoff anywhere in the lower 48. The only interline is offshore.",carriers:[
+ {n:"FedEx Freight",d:L48,p:["AK","HI"],note:"Own terminals in all 48 plus its own Canadian LTL arm, so cross-border stays in-house. The only true handoff is offshore.",h:OFFSHORE},
+ {n:"Old Dominion",d:L48,p:["AK","HI"],note:"All 48 direct. Canada and Mexico run through ODFL's own cross-border arrangements rather than a partner LTL carrier.",h:OFFSHORE},
+ {n:"XPO",d:L48,p:["AK","HI"],note:"All 48 direct. Points deep into Canada beyond the border gateways go to partners, as does anything offshore.",h:[["Interior Canada","Canadian LTL partners"]].concat(OFFSHORE)},
+ {n:"Estes Express",d:L48,p:["AK","HI"],note:"All 48 direct, with company operations into Canada and Mexico. Estes Forwarding Worldwide handles the freight that leaves the road network.",h:OFFSHORE},
+ {n:"Saia",d:L48,p:["AK","HI"],note:"Reached all 48 states after picking up terminals in the Yellow shutdown. The Northeast build-out is the newest and thinnest part of the network.",h:[["Canada","Canadian LTL partners"]].concat(OFFSHORE)},
+ {n:"ABF Freight",d:L48,p:["AK","HI"],note:"All 48 direct. ArcBest's logistics arm absorbs most of what would otherwise be an interline, including Canada and Mexico.",h:OFFSHORE},
+ {n:"TForce Freight",d:L48,p:["AK","HI"],note:"All 48 direct. TFI sister companies cover Canada, so that leg is intracompany rather than a true handoff.",h:[["Canada","TFI sister carriers"]].concat(OFFSHORE)},
+ {n:"R+L Carriers",d:L48,p:["AK","HI"],note:"All 48 direct, and unusually keeps Alaska, Hawaii, Puerto Rico and the Caribbean under company control rather than interlining them.",h:[["Very little","Offshore stays largely in-house"]]},
+ {n:"Central Transport",d:L48,p:["AK","HI"],note:"Effectively national, densest across the Midwest, Northeast and Southeast. Canada moves through CenTra affiliates.",h:[["Canada","CenTra affiliate carriers"]].concat(OFFSHORE)}
+]},
+{name:"The four-corner alliance",gloss:"Four regionals carving the country into quadrants with almost no overlap. Know one, you know where its freight goes at the edge.",carriers:[
+ {n:"A. Duie Pyle",d:NE.concat(["VA","WV","OH","NC"]),p:[],note:"Northeast and Mid-Atlantic direct, now reaching down into North Carolina and across the whole of Ohio. The alliance is the entire long-haul strategy.",h:[["Midwest","Dayton Freight"],["Southeast and Southwest","Southeastern Freight Lines"],["West Coast","Oak Harbor Freight Lines"],["Canada","Manitoulin Transport"]]},
+ {n:"Dayton Freight",d:MW.concat(["KY","TN","WV","NE","KS","PA","SD"]),p:["ND","AR"],note:"Midwest direct from 70-plus service centers. The Pyle relationship dates to 2003 and exchanges at Streetsboro and Cleveland; both carriers widened their Ohio and Pennsylvania overlap in 2025 to convert two-day lanes to overnight.",h:[["Northeast","A. Duie Pyle"],["Southeast","Southeastern Freight Lines"],["West Coast","Oak Harbor Freight Lines"],["Northern plains","Cross Country Freight Solutions"],["Alaska","Lynden Transport"],["Hawaii","Honolulu Freight Service"],["Canada","Manitoulin Transport"]]},
+ {n:"Southeastern Freight",d:SE.concat(["TX","OK","NM","AZ"]),p:["KY","MO"],note:"Southeast and Southwest direct out of Lexington, South Carolina. Its West Coast partnership with Oak Harbor is the older half of this alliance.",h:[["Northeast","A. Duie Pyle"],["Midwest","Dayton Freight"],["West Coast","Oak Harbor Freight Lines"]]},
+ {n:"Oak Harbor Freight",d:["WA","OR","CA","NV","ID","UT","AZ"],p:[],note:"Seven western states direct from Auburn, Washington. Family-owned since 1916 and the West Coast leg for all three of the others, which is why so much eastbound freight from the Northwest lands on one of their docks.",h:[["Northeast","A. Duie Pyle"],["Midwest","Dayton Freight"],["Southeast","Southeastern Freight Lines"],["Canada","Own Canadian terminals"]]}
+]},
+{name:"Reliance Network &amp; PITT OHIO group",gloss:"A second bloc doing the same job with a different roster, plus in-house transfers that look like interlines but aren't.",carriers:[
+ {n:"PITT OHIO",d:["PA","OH","WV","MD","DE","NJ","NY","VA","IN","MI","KY","IL"],p:["NC","CT","MA","WI"],note:"Mid-Atlantic and Ohio Valley direct. Several of its handoffs are inside its own holding group, which changes the claims exposure and the tracing path even though the freight still changes trailers.",h:[["Midwest","Dohrn (same group)"],["Northern New England","Ross Express (same group)"],["Southeast","Averitt Express"],["California, Nevada, Arizona","Mountain Valley Express"],["Pacific Northwest","Peninsula Truck Lines"],["Canada","Canadian Freightways / Kingsway"]]},
+ {n:"Averitt",d:SE.concat(["TX","KY","MO","OK"]),p:["IN","OH","IL"],note:"Southeast plus Texas direct, with a heavy port-drayage and international side that often keeps the freight in-house longer than a pure LTL carrier would.",h:[["Northeast and Ohio Valley","PITT OHIO"],["California, Nevada, Arizona","Mountain Valley Express"],["Pacific Northwest","Peninsula Truck Lines"],["Upper Midwest","Lakeville Motor Express"],["Canada","Canadian Freightways / Kingsway"]]},
+ {n:"Dohrn",d:["IL","IA","WI","MN","MO","IN","NE"],p:["KS","KY","SD","MI"],note:"Renamed from Dohrn Transfer in August 2026 after absorbing Sutton Transport and rebuilding around large metro terminals instead of the old rural footprint. Now inside the PITT OHIO group.",h:[["Mid-Atlantic and Northeast","PITT OHIO (same group)"],["Northern New England","Ross Express (same group)"]]}
+]},
+{name:"Knight-Swift LTL",gloss:"Three brands consolidated into one, so what used to be three quotes is now a single direct network.",carriers:[
+ {n:"AAA Cooper",d:SE.concat(["TX","OK","MO","KS","AR","IL","IN","OH","KY","IA","NE","MN","WI","ND","SD","MT","WY","CO","WA","OR","ID","UT","CA","NV","AZ","NM"]),p:["PA","MI"],note:"Midwest Motor Express and DHE Transportation both rebranded to AAA Cooper on 1 January 2026, keeping the AACT code and existing pricing. Roughly 35 states now sit on one network. The Northeast is the acknowledged remaining gap.",h:[["Northeast","Affiliate carrier program"],["Canada and Mexico","Affiliate carrier program"]]}
+]},
+{name:"Regional and single-lane",gloss:"Bilateral interline agreements rather than a named alliance. Coverage claims vary by which page you read.",carriers:[
+ {n:"Ward",d:["PA","OH","NY","NJ","MD","DE","VA","NC","SC"],p:["IL","IN","WV","KY","MI","CT","MA"],note:"23 service centers across nine states out of Altoona, Pennsylvania, with newer reach into Chicago and Indianapolis. Everything past that runs on partner-carrier agreements negotiated one at a time.",h:[["Everywhere else in North America","Bilateral partner agreements"]]},
+ {n:"Moran",d:["IL","IN","WI","MN","MO","ND","SD"],p:["MI","OH","KY","IA"],note:"Chicagoland-centred, running LTL, LCL and air-freight cartage together. Published state lists differ noticeably between its own materials, so verify the edges.",h:[["Beyond the upper Midwest","Bilateral interline agreements"],["Manitoba, Saskatchewan, Alberta, BC","Canadian partners"]]},
+ {n:"Benjamin Best",d:["OH","KY"],p:["CA","OR","WA","NV","AZ","UT","ID","CO","TX","NM"],note:"Not a footprint carrier. One terminal in Cincinnati running over-the-road linehaul westbound, deliberately staying off the Chicago rail interchange that union competitors are contractually pushed toward. Mapping it by state coverage misleads.",h:[["Delivery in the west","Terminal partners at the far end"]]}
+]},
+{name:"Expedited and metro-to-metro",gloss:"The handoff is the business model. State coverage is the wrong lens for these three.",carriers:[
+ {n:"Forward Air",d:[],p:L48,note:"Airport-to-airport expedited. Terminals sit beside airports and the customer is usually a freight forwarder, not a shipper. Pickup and delivery at both ends is somebody else's job by design.",h:[["Both ends of every move","Forwarders and cartage agents"]]},
+ {n:"Daylight Transport",d:["CA","NV","AZ","OR","WA","UT","TX","IL","GA","NJ","PA","FL"],p:not(["CA","NV","AZ","OR","WA","UT","TX","IL","GA","NJ","PA","FL"]),note:"Expedited LTL on airport-adjacent terminals in major metros, rooted on the West Coast. Outside those metros it is agent coverage, not company pickup and delivery.",h:[["Outside the metro list","Agents and partner carriers"]]},
+ {n:"Roadrunner",d:["IL","CA","TX","GA","PA","NJ","OH","TN","NC","FL","MO","MN","WI","IN","MI","CO","AZ","WA","OR","UT","NY","MA","MD"],p:[],note:"Metro-to-metro long-haul between roughly 40 markets, with no attempt at rural pickup and delivery. Anything off the metro list is agent-handled or simply not served.",h:[["Anything off the metro list","Agents, or not served at all"]]}
+]}];
+
+(function(){
+  var picker=document.getElementById("picker"),grid=document.getElementById("grid"),
+      cname=document.getElementById("cname"),ccount=document.getElementById("ccount"),
+      cnote=document.getElementById("cnote"),ledger=document.getElementById("ledger"),
+      buttons=[];
+
+  BLOCS.forEach(function(b){
+    var sec=document.createElement("section");sec.className="bloc";
+    var h=document.createElement("h2");h.innerHTML=b.name;sec.appendChild(h);
+    var g=document.createElement("p");g.textContent=b.gloss;sec.appendChild(g);
+    b.carriers.forEach(function(c){
+      var btn=document.createElement("button");
+      btn.className="pick";btn.type="button";btn.textContent=c.n;btn.setAttribute("aria-pressed","false");
+      btn.addEventListener("click",function(){select(c,btn)});
+      sec.appendChild(btn);buttons.push(btn);
+    });
+    picker.appendChild(sec);
+  });
+
+  var tiles={};
+  GRID.forEach(function(row){row.forEach(function(s){
+    var d=document.createElement("div");
+    if(!s){d.className="tile blank";grid.appendChild(d);return;}
+    d.className="tile";d.textContent=s;grid.appendChild(d);tiles[s]=d;
+  })});
+
+  function select(c,btn){
+    buttons.forEach(function(b){b.setAttribute("aria-pressed",b===btn?"true":"false")});
+    Object.keys(tiles).forEach(function(s){
+      tiles[s].className="tile"+(c.d.indexOf(s)>-1?" d":c.p.indexOf(s)>-1?" p":"");
+    });
+    cname.textContent=c.n;
+    ccount.textContent=c.d.length+" direct"+(c.p.length?"  /  "+c.p.length+" partial":"");
+    cnote.textContent=c.note;
+    var rows=c.h.map(function(h){
+      return '<div class="row"><div class="from">'+h[0]+'</div><div class="arrow" aria-hidden="true">&rarr;</div><div class="to">'+h[1]+'</div></div>';
+    }).join("");
+    ledger.innerHTML='<h4>Hands off at the edge</h4>'+rows;
+  }
+
+  select(BLOCS[1].carriers[0],buttons[9]);
+})();
+</script>
+</body>
+</html>
